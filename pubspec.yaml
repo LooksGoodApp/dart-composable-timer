@@ -1,0 +1,13 @@
+publish_to: "none"
+name: composable_timer
+description: A timer-monad that uses Kleisli composition
+version: 0.0.1
+maintainer: Yakov Karpov (@purplenoodlesoop)
+
+homepage: https://github.com/LooksGoodApp/flutter-composable-timer
+
+environment:
+  sdk: ">=2.12.0 <3.0.0"
+
+dev_dependencies:
+  pedantic: ^1.10.0
