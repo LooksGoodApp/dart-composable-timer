@@ -1,3 +1,3 @@
-## 1.0.0
+## [0.0.1] - 23.06.2021
 
-- Initial version.
+- Initial release.

@@ -1,4 +1,3 @@
-publish_to: "none"
 name: composable_timer
 description: A timer-monad that uses Kleisli composition
 version: 0.0.1
