@@ -34,6 +34,6 @@ void main(List<String> arguments) async {
   final string = 'Hello, World!';
   final timedLength = await timedStringLength(string);
   print('$string length: ${timedLength.value}\n');
-  print(timedLength.description);
-  print('Took overall: ${timedLength.time} milliseconds');
+  print(timedLength.log);
+  print('Took overall: ${timedLength.duration.inMilliseconds} milliseconds');
 }

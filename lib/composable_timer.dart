@@ -10,10 +10,10 @@ typedef TimedFunction<A, B> = FutureOr<TimedExecution<B>> Function(A);
 /// `Rocket flight time: 274 milliseconds`
 class TimedExecution<T> {
   final T value;
-  final int time;
-  final String description;
+  final String log;
+  final Duration duration;
 
-  TimedExecution(this.value, this.time, this.description);
+  TimedExecution(this.value, this.log, this.duration);
 }
 
 /// Tuple wrapper used to provide a singe input to [fishTiming] and [fishMixed]
@@ -37,8 +37,8 @@ abstract class ComposableTimer {
           TimedExecution<dynamic> first, TimedExecution<T> second) =>
       TimedExecution(
         second.value,
-        first.time + second.time,
-        first.description + second.description,
+        first.log + second.log,
+        first.duration + second.duration,
       );
 
   static TimedFunction<A, B> _timeInput<A, B>(TimerInput<A, B> input) =>
@@ -54,8 +54,8 @@ abstract class ComposableTimer {
     final value = await fn();
     return TimedExecution(
       value,
-      stopwatch.elapsedMilliseconds,
       '$description time: ${stopwatch.elapsedMilliseconds} milliseconds\n',
+      stopwatch.elapsed,
     );
   }
 
@@ -94,5 +94,6 @@ abstract class ComposableTimer {
       fish<A, B, C>(first, _timeInput(second));
 
   /// Returns an identity morphism with the given value of type [T]
-  static TimedExecution<T> identity<T>(T value) => TimedExecution(value, 0, '');
+  static FutureOr<TimedExecution<T>> identity<T>(T value) =>
+      TimedExecution(value, '', Duration());
 }
