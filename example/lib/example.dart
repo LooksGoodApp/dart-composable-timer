@@ -14,16 +14,20 @@ Future<String> stringify(int number) async {
   return number.toString();
 }
 
+String sideEffects(String string) {
+  // perform some side effects
+  print('Hello from sideEffects!\n');
+  List.generate(100000, (i) => i).reduce((value, element) => value + element);
+  return string;
+}
+
 FutureOr<TimedExecution<String>> timedStringLength(String inputString) =>
-    ComposableTimer.fish(
-      (String inputString) => ComposableTimer.run(
-        'Calculating length',
-        () => calculateLength(inputString),
+    ComposableTimer.fishMixed(
+      ComposableTimer.fishTiming(
+        TimerInput(calculateLength, 'Calculating length'),
+        TimerInput(stringify, 'String conversion'),
       ),
-      (int length) => ComposableTimer.run(
-        'String conversion',
-        () => stringify(length),
-      ),
+      TimerInput(sideEffects, 'Side effects')
     )(inputString);
 
 void main(List<String> arguments) async {
