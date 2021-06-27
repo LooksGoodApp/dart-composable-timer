@@ -1,5 +1,7 @@
 import 'dart:async';
 
+typedef TimedFunction<A, B> = FutureOr<TimedExecution<B>> Function(A);
+
 /// Timer result type.
 ///
 /// Contains given function return, time it took to execute it and a formatted
@@ -31,7 +33,6 @@ class TimerInput<A, B> {
 /// [fish<A, B, C>]. Performs a Kleisli composition on two timer functions.
 /// [identity<T>]. Returns an identity [TimedExecution<T>] instance.
 abstract class ComposableTimer {
-  
   static TimedExecution<T> _composeResult<T>(
           TimedExecution<dynamic> first, TimedExecution<T> second) =>
       TimedExecution(
@@ -40,8 +41,7 @@ abstract class ComposableTimer {
         first.description + second.description,
       );
 
-  static FutureOr<TimedExecution<B>> Function(A input) _timeInput<A, B>(
-          TimerInput<A, B> input) =>
+  static TimedFunction<A, B> _timeInput<A, B>(TimerInput<A, B> input) =>
       (value) => run(input.description, () => input.fn(value));
 
   /// Runs a timer on a given function, returning its output, time it took
@@ -64,9 +64,10 @@ abstract class ComposableTimer {
   /// For `fish<A, B, C>`, their composition has the following types:
   ///
   /// `(A -> B) -> (B -> C) -> (A -> C)`
-  static FutureOr<TimedExecution<C>> Function(A) fish<A, B, C>(
-          FutureOr<TimedExecution<B>> Function(A) first,
-          FutureOr<TimedExecution<C>> Function(B) second) =>
+  static TimedFunction<A, C> fish<A, B, C>(
+    TimedFunction<A, B> first,
+    TimedFunction<B, C> second,
+  ) =>
       (A input) async {
         final firstValue = await first(input);
         return _composeResult<C>(firstValue, await second(firstValue.value));
@@ -76,7 +77,7 @@ abstract class ComposableTimer {
   ///
   /// Useful when there is a need to timed functions that were not intended to
   /// be timed.
-  static FutureOr<TimedExecution<C>> Function(A) fishTiming<A, B, C>(
+  static TimedFunction<A, C> fishTiming<A, B, C>(
     TimerInput<A, B> first,
     TimerInput<B, C> second,
   ) =>
@@ -86,8 +87,8 @@ abstract class ComposableTimer {
   ///
   /// Useful for pipelining the [fishTimer(...)] functions without wrapping
   /// regular functions by hand.
-  static FutureOr<TimedExecution<C>> Function(A) fishMixed<A, B, C>(
-    FutureOr<TimedExecution<B>> Function(A) first,
+  static TimedFunction<A, C> fishMixed<A, B, C>(
+    TimedFunction<A, B> first,
     TimerInput<B, C> second,
   ) =>
       fish<A, B, C>(first, _timeInput(second));
