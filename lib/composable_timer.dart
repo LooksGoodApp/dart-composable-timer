@@ -14,6 +14,8 @@ class TimedExecution<T> {
   TimedExecution(this.value, this.time, this.description);
 }
 
+/// Tuple wrapper used to provide a singe input to [fishTiming] and [fishMixed]
+/// functions.
 class TimerInput<A, B> {
   final FutureOr<B> Function(A input) fn;
   final String description;
@@ -29,6 +31,7 @@ class TimerInput<A, B> {
 /// [fish<A, B, C>]. Performs a Kleisli composition on two timer functions.
 /// [identity<T>]. Returns an identity [TimedExecution<T>] instance.
 abstract class ComposableTimer {
+  
   static TimedExecution<T> _composeResult<T>(
           TimedExecution<dynamic> first, TimedExecution<T> second) =>
       TimedExecution(
@@ -36,6 +39,10 @@ abstract class ComposableTimer {
         first.time + second.time,
         first.description + second.description,
       );
+
+  static FutureOr<TimedExecution<B>> Function(A input) _timeInput<A, B>(
+          TimerInput<A, B> input) =>
+      (value) => run(input.description, () => input.fn(value));
 
   /// Runs a timer on a given function, returning its output, time it took
   /// and formatted description.
@@ -73,10 +80,7 @@ abstract class ComposableTimer {
     TimerInput<A, B> first,
     TimerInput<B, C> second,
   ) =>
-      fish<A, B, C>(
-        (firstInput) => run(first.description, () => first.fn(firstInput)),
-        (secondInput) => run(second.description, () => second.fn(secondInput)),
-      );
+      fish<A, B, C>(_timeInput(first), _timeInput(second));
 
   /// Composes mixed timer functions.
   ///
@@ -86,10 +90,7 @@ abstract class ComposableTimer {
     FutureOr<TimedExecution<B>> Function(A) first,
     TimerInput<B, C> second,
   ) =>
-      fish<A, B, C>(
-        first,
-        (secondInput) => run(second.description, () => second.fn(secondInput)),
-      );
+      fish<A, B, C>(first, _timeInput(second));
 
   /// Returns an identity morphism with the given value of type [T]
   static TimedExecution<T> identity<T>(T value) => TimedExecution(value, 0, '');

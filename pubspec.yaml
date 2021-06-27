@@ -1,5 +1,5 @@
 name: composable_timer
-description: A timer-monad that uses Kleisli composition
+description: A timer monad that uses Kleisli composition
 version: 0.0.1
 maintainer: Yakov Karpov (@purplenoodlesoop)
 
