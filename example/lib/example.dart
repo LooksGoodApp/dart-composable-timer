@@ -27,7 +27,7 @@ FutureOr<TimedExecution<String>> timedStringLength(String inputString) =>
         TimerInput(calculateLength, 'Calculating length'),
         TimerInput(stringify, 'String conversion'),
       ),
-      TimerInput(sideEffects, 'Side effects')
+      TimerInput(sideEffects, 'Side effects'),
     )(inputString);
 
 void main(List<String> arguments) async {
