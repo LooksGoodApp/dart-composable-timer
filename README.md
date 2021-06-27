@@ -1,6 +1,6 @@
 # composable_timer
 
-Composable function timer that uses Kleisli compositing
+Composable function timer that uses Kleisli composition
 
 ## Motivation
 
@@ -30,7 +30,7 @@ final timedToA = ComposableTimer.run('A to B conversion', () => fn(input));
 - `log` – formatted measurement description, it this case, `A to B conversion time: %number% milliseconds`
 - `duration` – `Duration` object that tells how much time it took
 
-### Multiple function timing
+### Timing composition
 
 Usually, function timing is composed in some way. The ComposableTimer package provides three ways of composition.
 
