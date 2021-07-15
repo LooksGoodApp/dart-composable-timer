@@ -1,6 +1,6 @@
 name: composable_timer
 description: Composable function timer that uses Kleisli compositing
-version: 0.1.0
+version: 0.2.0
 maintainer: Yakov Karpov (@purplenoodlesoop)
 
 homepage: https://github.com/LooksGoodApp/flutter-composable-timer
