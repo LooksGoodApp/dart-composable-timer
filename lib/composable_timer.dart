@@ -1,99 +1,100 @@
-import 'dart:async';
-
-typedef TimedFunction<A, B> = FutureOr<TimedExecution<B>> Function(A);
-
-/// Timer result type.
-///
-/// Contains given function return, time it took to execute it and a formatted
-/// description with time, such as:
-///
-/// `Rocket flight time: 274 milliseconds`
-class TimedExecution<T> {
+class TimerM<T> {
   final T value;
   final String log;
   final Duration duration;
 
-  TimedExecution(this.value, this.log, this.duration);
-}
+  TimerM._(this.value, this.log, this.duration);
 
-/// Tuple wrapper used to provide a singe input to [fishTiming] and [fishMixed]
-/// functions.
-class TimerInput<A, B> {
-  final FutureOr<B> Function(A input) fn;
-  final String description;
+  static TimerM<T> identity<T>(T value) => TimerM._(value, '', Duration());
 
-  TimerInput(this.fn, this.description);
-}
+  /// Times a given function with description
+  static TimerM<T> run<T>(String description, T Function() fn) {
+    final stopwatch = Stopwatch()..start();
+    final value = fn();
+    return _formatOutput(value, description, stopwatch);
+  }
 
-/// Timer's namespace. It is not intended to be implemented or extended.
-///
-/// Contains three static functions:
-///
-/// [run<T>]. Runs a timer on a given function with a given description.
-/// [fish<A, B, C>]. Performs a Kleisli composition on two timer functions.
-/// [identity<T>]. Returns an identity [TimedExecution<T>] instance.
-abstract class ComposableTimer {
-  static TimedExecution<T> _composeResult<T>(
-          TimedExecution<dynamic> first, TimedExecution<T> second) =>
-      TimedExecution(
+  /// Times a given async function with description
+  static Future<TimerM<T>> runAsync<T>(
+      String description, Future<T> Function() fn) async {
+    final stopwatch = Stopwatch()..start();
+    final value = await fn();
+    return _formatOutput(value, description, stopwatch);
+  }
+
+  /// Creates an instance of the [TimerM] based on a Stopwatch with
+  /// a given description
+  static TimerM<T> _formatOutput<T>(
+          T value, String description, Stopwatch stopwatch) =>
+      TimerM._(
+        value,
+        '$description took ${stopwatch.elapsedMilliseconds} milliseconds\n',
+        stopwatch.elapsed,
+      );
+
+  /// Composes two instances of the [TimerM]
+  TimerM<Z> _composeResult<Z>(TimerM<dynamic> first, TimerM<Z> second) =>
+      TimerM._(
         second.value,
         first.log + second.log,
         first.duration + second.duration,
       );
 
-  static TimedFunction<A, B> _timeInput<A, B>(TimerInput<A, B> input) =>
-      (value) => run(input.description, () => input.fn(value));
+  /// Takes a single function that takes a value of type [T] and
+  /// returns an instance of the [TimerM] by composing its result
+  /// with a current instance
+  TimerM<Z> flatMap<Z>(TimerM<Z> Function(T value) f) =>
+      _composeResult(this, f(value));
 
-  /// Runs a timer on a given function, returning its output, time it took
-  /// and formatted description.
-  ///
-  /// Can be composed using the [fish<A, B, C>] function.
-  static FutureOr<TimedExecution<T>> run<T>(
-      String description, FutureOr<T> Function() fn) async {
-    final stopwatch = Stopwatch()..start();
-    final value = await fn();
-    return TimedExecution(
-      value,
-      '$description time: ${stopwatch.elapsedMilliseconds} milliseconds\n',
-      stopwatch.elapsed,
-    );
+  /// Takes a function that returns a regular value and returns an instance of
+  /// the [TimerM] by using the [identity] function
+  TimerM<Z> map<Z>(Z Function(T value) f) =>
+      flatMap((value) => identity(f(value)));
+
+  /// Takes a function that returns a regular value and returns an instance of
+  /// the [TimerM] by using the [run] function
+  TimerM<Z> mapTiming<Z>(String description, Z Function(T value) f) =>
+      flatMap((value) => run(description, () => f(value)));
+
+  /// Async version of the [flatMap]
+  Future<TimerM<Z>> asyncFlatMap<Z>(
+          Future<TimerM<Z>> Function(T value) f) async =>
+      _composeResult(this, await f(value));
+
+  /// Async version of the [map]
+  Future<TimerM<Z>> asyncMap<Z>(Future<Z> Function(T value) f) async =>
+      asyncFlatMap((value) async => identity(await f(value)));
+
+  /// Async version of the [mapTiming]
+  Future<TimerM<Z>> asyncMapTiming<Z>(
+          String description, Future<Z> Function(T value) f) =>
+      asyncFlatMap((value) => runAsync(description, () => f(value)));
+}
+
+/// Provides the same functions as the [TimerM] class, but for the
+/// [Future<TimerM>]. Used for chaining expressions after using any of the
+/// [async] functions on the original class.
+extension AsyncFlatMap<T> on Future<TimerM<T>> {
+  Future<TimerM<Z>> flatMap<Z>(TimerM<Z> Function(T value) f) async =>
+      (await this).flatMap(f);
+
+  Future<TimerM<Z>> map<Z>(Z Function(T value) f) async =>
+      (await this).flatMap((value) => TimerM.identity(f(value)));
+
+  Future<TimerM<Z>> mapTiming<Z>(String description, Z Function(T value) f) =>
+      flatMap((value) => TimerM.run(description, () => f(value)));
+
+  Future<TimerM<Z>> asyncFlatMap<Z>(
+      Future<TimerM<Z>> Function(T value) f) async {
+    final awaited = await this;
+    final result = await f(awaited.value);
+    return awaited.flatMap((_) => result);
   }
 
-  /// Composes two [run<T>] functions, returning another function.
-  ///
-  /// For `fish<A, B, C>`, their composition has the following types:
-  ///
-  /// `(A -> B) -> (B -> C) -> (A -> C)`
-  static TimedFunction<A, C> fish<A, B, C>(
-    TimedFunction<A, B> first,
-    TimedFunction<B, C> second,
-  ) =>
-      (A input) async {
-        final firstValue = await first(input);
-        return _composeResult<C>(firstValue, await second(firstValue.value));
-      };
+  Future<TimerM<Z>> asyncMap<Z>(Future<Z> Function(T value) f) =>
+      asyncFlatMap((value) async => TimerM.identity(await f(value)));
 
-  /// Composes two regular functions through the [TimerInput] tuple.
-  ///
-  /// Useful when there is a need to timed functions that were not intended to
-  /// be timed.
-  static TimedFunction<A, C> fishTiming<A, B, C>(
-    TimerInput<A, B> first,
-    TimerInput<B, C> second,
-  ) =>
-      fish<A, B, C>(_timeInput(first), _timeInput(second));
-
-  /// Composes mixed timer functions.
-  ///
-  /// Useful for pipelining the [fishTimer(...)] functions without wrapping
-  /// regular functions by hand.
-  static TimedFunction<A, C> fishMixed<A, B, C>(
-    TimedFunction<A, B> first,
-    TimerInput<B, C> second,
-  ) =>
-      fish<A, B, C>(first, _timeInput(second));
-
-  /// Returns an identity morphism with the given value of type [T]
-  static FutureOr<TimedExecution<T>> identity<T>(T value) =>
-      TimedExecution(value, '', Duration());
+  Future<TimerM<Z>> asyncMapTiming<Z>(
+          String description, Future<Z> Function(T value) f) =>
+      asyncFlatMap((value) => TimerM.runAsync(description, () => f(value)));
 }

@@ -1,3 +1,7 @@
+## [0.2.0] - 15.07.2021
+
+- [BREAKING CHANGES] Transferred API to the method-based approach instead of the function-based for better readability
+
 ## [0.1.0] - 27.06.2021
 
 - Updated example
