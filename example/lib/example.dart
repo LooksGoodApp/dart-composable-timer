@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:composable_timer/composable_timer.dart';
 
 int calculateLength(String string) {
@@ -21,14 +19,11 @@ String sideEffects(String string) {
   return string;
 }
 
-FutureOr<TimedExecution<String>> timedStringLength(String inputString) =>
-    ComposableTimer.fishMixed(
-      ComposableTimer.fishTiming(
-        TimerInput(calculateLength, 'Calculating length'),
-        TimerInput(stringify, 'String conversion'),
-      ),
-      TimerInput(sideEffects, 'Side effects'),
-    )(inputString);
+Future<TimerM<String>> timedStringLength(String inputString) =>
+    TimerM.identity(inputString)
+        .mapTiming('Calculating length', calculateLength)
+        .asyncMapTiming('String conversion', stringify)
+        .mapTiming('Side effects', sideEffects);
 
 void main(List<String> arguments) async {
   final string = 'Hello, World!';
